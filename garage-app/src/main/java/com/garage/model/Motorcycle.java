@@ -1,0 +1,17 @@
+package com.garage.model;
+
+public class Motorcycle extends Vehicle {
+
+	
+	private boolean extraSeat;
+
+	 
+    public Motorcycle() {
+        setType("Motorcycle");
+        setPrice(1000);
+    }
+
+    public boolean isExtraSeat() { return extraSeat; }
+    public void setExtraSeat(boolean extraSeat) { this.extraSeat = extraSeat; }
+
+}

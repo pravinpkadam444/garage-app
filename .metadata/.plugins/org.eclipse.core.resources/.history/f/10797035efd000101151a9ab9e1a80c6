@@ -1,0 +1,5 @@
+package com.garage.service;
+
+public class VehicleService {
+
+}

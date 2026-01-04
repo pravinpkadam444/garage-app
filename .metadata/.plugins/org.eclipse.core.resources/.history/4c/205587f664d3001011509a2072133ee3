@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Garage Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; background: #f8f9fa; }
+        table { margin-top: 15px; }
+        tr:hover { background: #e9ecef; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<h2>Garage Management System</h2>
+
+<div class="mb-3">
+    <button class="btn btn-primary" onclick="loadVehicles()">Load All Vehicles</button>
+    <button class="btn btn-success" onclick="showProfit()">Show Profit</button>
+</div>
+<!-- Add Vehicle Form -->
+<div class="card mt-2 p-3">
+    <h5>Add Vehicle</h5>
+    <input id="addPlate" class="form-control mb-2" placeholder="License Plate">
+    <input id="addDesc" class="form-control mb-2" placeholder="Description">
+    <input id="addYear" type="number" class="form-control mb-2" placeholder="Year">
+    <select id="addType" class="form-select mb-2">
+        <option value="Car">Car</option>
+        <option value="Motorcycle">Motorcycle</option>
+        <option value="Truck">Truck</option>
+    </select>
+    <input id="addStatus" class="form-control mb-2" placeholder="status">
+    <input id="addWeightLimit" class="form-control mb-2" placeholder="weightLimit">
+    
+    <button class="btn btn-primary" onclick="addVehicle()">Add Vehicle</button>
+</div>
+
+
+<!-- Update Status -->
+	<div class="box">
+	    <h4>Update Vehicle Status</h4>
+	    <label>Plate:</label>
+	    <input type="text" id="updPlate">
+	
+	    <label>New Status:</label>
+	    <!--<input type="text" id="updStatus">-->
+		<select id="updStatus">
+            <option value="InProcess">InProcess</option>
+            <option value="Fixed">Fixed</option>
+            <option value="Released">Released</option>
+        </select>
+        
+	    <button class="btn btn-secondary" onclick="updateStatus()">Update Status</button>
+	    <pre id="updResult"></pre>
+	</div>
+<!-- Search/filter -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <input type="text" id="searchBox" class="form-control" placeholder="Search by license plate" onkeyup="loadVehicles()">
+    </div>
+    <div class="col-md-3">
+        <select id="statusFilter" class="form-select" onchange="loadVehicles()">
+            <option value="All">All Statuses</option>
+            <option value="New">New</option>
+            <option value="InProcess">In Process</option>
+            <option value="Fixed">Fixed</option>
+            <option value="Released">Released</option>
+        </select>
+    </div>
+</div>
+
+<!-- Vehicle Table -->
+<table class="table table-bordered">
+    <thead class="table-light">
+        <tr>
+            <th>License Plate</th>
+            <th>Type</th>
+            <th>Year</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="vehicleTableBody"></tbody>
+</table>
+
+<!-- Vehicle Details -->
+<div class="card mt-3" id="vehicleDetails" style="display:none;">
+    <div class="card-body">
+        <h5>Vehicle Details</h5>
+        <ul id="detailsList"></ul>
+    </div>
+</div>
+
+<!-- Add Vehicle Form -->
+<!--<div class="card mt-3 p-3">
+    <h5>Add Vehicle</h5>
+    <input id="addPlate" class="form-control mb-2" placeholder="License Plate">
+    <input id="addDesc" class="form-control mb-2" placeholder="Description">
+    <input id="addYear" type="number" class="form-control mb-2" placeholder="Year">
+    <select id="addType" class="form-select mb-2">
+        <option value="Car">Car</option>
+        <option value="Motorcycle">Motorcycle</option>
+        <option value="Truck">Truck</option>
+    </select>
+    <input id="addStatus" class="form-control mb-2" placeholder="status">
+    <input id="addWeightLimit" class="form-control mb-2" placeholder="weightLimit">
+    
+    <button class="btn btn-primary" onclick="addVehicle()">Add Vehicle</button>
+</div>-->
+
+<!-- Quick Stats -->
+<div class="card mt-3 p-3">
+    <h5>Quick Stats</h5>
+    <p>Total Vehicles: <span id="totalVehicles">0</span></p>
+    <p>Fixed Vehicles: <span id="fixedVehicles">0</span></p>
+    <p>In Process: <span id="inProcessVehicles">0</span></p>
+</div>
+
+<script>
+    // Load all vehicles	
+    function loadVehicles(){
+        fetch("/api/vehicle/getAll")
+            .then(res => res.json())
+            .then(data => {
+                const keyword = document.getElementById("searchBox").value.toLowerCase();
+                const statusFilter = document.getElementById("statusFilter").value;
+                const filtered = data.filter(v => 
+                    (statusFilter === "All" || v.status === statusFilter) &&
+                    v.licensePlate.toLowerCase().includes(keyword)
+                );
+                renderTable(filtered);
+                updateStats(data);
+            }); 
+    }
+
+    // Render vehicle table
+    function renderTable(list) {
+        const tbody = document.getElementById("vehicleTableBody");
+        tbody.innerHTML = "";
+        list.forEach(v => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${v.licensePlate}</td>
+                <td>${v.type}</td>
+                <td>${v.year}</td>
+                <td>${v.status}</td>
+                <td><button onclick="viewDetails('${v.licensePlate}')" class="btn btn-sm btn-info">View</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // Update stats
+    function updateStats(data) {
+		//const addstatus = document.getElementById("addStatus").value;
+        document.getElementById("totalVehicles").innerText = data.length;
+        document.getElementById("fixedVehicles").innerText = data.filter(v => v.status === "Fixed").length;
+        document.getElementById("inProcessVehicles").innerText = data.filter(v => v.status === "InProcess").length;
+    }
+
+    // View vehicle details
+    function viewDetails(plate) {
+        fetch(`/api/vehicle/search/${encodeURIComponent(plate)}`)
+            .then(res => res.json())
+            .then(v => {
+				if (Array.isArray(v)) {
+                	v = v[0];
+            	}
+                const detailsDiv = document.getElementById("vehicleDetails");
+                const detailsList = document.getElementById("detailsList");
+                detailsDiv.style.display = "block";
+                detailsList.innerHTML = `
+                    <li><B>License Plate</B>: ${v.licensePlate}</li>
+                    <li><B>Description  </B>: ${v.description}</li>
+                    <li><B>Year        </B> : ${v.year}</li>
+                    <li><B>Type         </B>: ${v.type}</li>
+                    <li><B>Status       </B> : ${v.status}</li>
+                    <li><B>WeightLimit  </B>: ${v.weightLimit}</li>     
+                `;
+            }).then(v => {
+            console.log("API response:", v); // <-- SEE WHAT IT RETURNS
+        });
+    }
+
+    // Add vehicle
+    function addVehicle() {
+        const vehicle = {
+            licensePlate: document.getElementById("addPlate").value,
+            description: document.getElementById("addDesc").value,
+            year: parseInt(document.getElementById("addYear").value),
+            type: document.getElementById("addType").value,
+             status: document.getElementById("addStatus").value,
+             weightLimit:document.getElementById("addWeightLimit").value
+        };
+        fetch("/api/vehicle/add", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(vehicle)
+        }).then(() => {
+            loadVehicles();
+            alert("Vehicle added successfully!");
+        });
+    }
+    //Update status
+    function updateStatus() {
+	    const plate = document.getElementById("updPlate").value;
+	    const status = document.getElementById("updStatus").value;
+	
+	    fetch(`/api/vehicle/status/${plate}/${status}`, { method: "PUT" })
+	        .then(res => res.text())
+	        .then(text => document.getElementById("updResult").innerText );
+	}
+
+    // Show profit
+    function showProfit() {
+        fetch("/api/vehicle/profit")
+            .then(res => res.text())
+            .then(profit => alert("Total Profit: $" + profit));
+    }
+
+	//Auto refreah
+	 setInterval(() => {
+        loadVehicles();
+    }, 5000);
+    // Initial load
+    window.onload = loadVehicles;
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+ 	 <meta charset="UTF-8">
+    <title>Garage Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; background: #f8f9fa; }
+        table { margin-top: 15px; }
+        tr:hover { background: #e9ecef; cursor: pointer; }
+    </style>
+</head>
+<body>
+	<h2>Garage Management System</h2>
+	<div class="mb-3">
+    	<button class="btn btn-primary" onclick="listAllVehicle()">Load All Vehicles</button>
+    	<button class="btn btn-success" onclick="showProfit()">Show Profit</button>
+	</div>
+	<!-- Search/filter -->
+	<div class="row mb-3">
+	    <div class="col-md-6">
+	        <input type="text" id="search_plate" class="form-control" placeholder="Search by license plate" onkeyup="loadVehicles()">
+	    </div>
+	    <div class="col-md-3">
+	         <button class="btn btn-primary" onclick="searchPlate()">Search</button>
+	        <div id="searchResult"></div>
+	    </div>
+	</div>
+	<!-- Vehicle Table -->
+	<table class="table table-bordered">
+	    <thead class="table-light">
+	        <tr>
+	            <th>License Plate</th>
+	            <th>Type</th>
+	            <th>Year</th>
+	            <th>Status</th>
+	            <th>Actions</th>
+	        </tr>
+	    </thead>
+	    <tbody id="vehicleTableBody"></tbody>
+	</table>
+
+	<!-- Add Vehicle -->
+	<div class="card">
+	    <h2>Add Vehicle</h2>
+	    <label>Plate:</label>
+	    <input type="text" id="licensePlate">
+	
+	    <label>Description:</label>
+	    <input type="text" id="description">
+	
+	    <label>Year:</label>
+	    <input type="number" id="year">
+	    
+	    <lable>Type:</lable>
+	    <input type="text" id="type">
+	
+	    <label>Status:</label>
+	    <input type="text" id="status" value="New">
+	     
+	
+		<label>weightLimit:</label>
+	    <input type="text" id="weightLimit">
+	    
+	    <!--<label>Profit:</label>
+	    <input type="number" id="addProfit">-->
+	
+	    <button onclick="addVehicle()">Add Vehicle</button>
+	    <pre id="addResult"></pre>
+	</div>
+	
+	<!-- Update Status -->
+	<div class="card">
+	    <h2>Update Vehicle Status</h2>
+	    <label>Plate:</label>
+	    <input type="text" id="updPlate">
+	
+	    <label>New Status:</label>
+	    <!--<input type="text" id="updStatus">-->
+		<select id="updStatus">
+            <option value="InProgress">In Progress</option>
+            <option value="Fixed">Fixed</option>
+            <option value="Released">Released</option>
+        </select>
+        
+	    <button onclick="updateStatus()">Update Status</button>
+	    <pre id="updResult"></pre>
+	</div>
+	<!-- Search by Plate -->
+    <div class="box">
+        <h2>Search Vehicle by Plate</h2>
+        <input id="search_plate" placeholder="Plate Number">
+        <button onclick="searchPlate()">Search</button>
+        <div id="searchResult"></div>
+    </div>
+    <!-- Search by Description -->
+    <div class="box">
+        <h2>Search Vehicle by Description</h2>
+        <input id="search_desc" placeholder="Description keyword">
+        <button onclick="searchDesc()">Search</button>
+        <div id="descResult"></div>
+    </div>
+    <!-- List by Status -->
+    <div class="box">
+        <h2>List Vehicles by Status</h2>
+        <select id="list_status">
+			<option value="New">New</option>
+            <option value="Fixed">Fixed</option>
+            <option value="InProgress">In Progress</option>
+            <option value="Released">Released</option>
+        </select>
+        <button onclick="listByStatus()">List</button>
+        <div id="listStatusResult"></div>
+    </div>
+    <!-- Sort by Year -->
+    <div class="box">
+        <h2>Sort Vehicles by Year</h2>
+        <button onclick="sortYear()">Sort</button>
+        <div id="sortResult"></div>
+    </div>
+    
+    <!-- List All Vehicle -->
+    <div class="box">
+        <h2>Get All Vehicles List </h2>            
+        <button onclick="listAllVehicle()">ListAllVehicle</button>
+        <div id="listAllResult"></div>
+    </div>
+    <!-- Get All New Vehicle -->
+    <div class="box">
+        <h2> New Vehicle</h2>
+        <button onclick="loadVehiclesNew()">AllNewVehicles</button>
+        <div id="outputAll"></div>
+    </div><br>    
+	<br><!-- Get All New Vehicle By Json format -->
+	<button onclick="loadVehicles()">NewVehicles</button>
+	<pre id="output"></pre>
+
+
+<script>
+	const BASE_URL = "http://localhost:9091/api/vehicle";
+	
+	function createTable(list) {
+        if (list.length === 0) return "<p>No data found</p>";
+
+        let table = "<table><tr><th>Plate</th><th>Description</th><th>Year</th><th>Type</th><th>Status</th><th>Price</th><th>WeightLimit</th></tr>";
+        list.forEach(v => {
+            table += `<tr>
+                        <td>${v.licensePlate}</td>
+                        <td>${v.description}</td>
+                        <td>${v.year}</td>
+                        <td>${v.type}</td>
+                        <td>${v.status}</td>
+                        <td>${v.price}</td>
+                        <td>${v.weightLimit}</td>
+                      </tr>`;
+        });
+        table += "</table>";
+        return table;
+    }
+    function sortYear() {
+        fetch(`${BASE_URL}/sort/year`)
+            .then(r => r.json())
+            .then(list => document.getElementById("sortResult").innerHTML = createTable(list));
+    }
+    function listByStatus() {
+        const status = document.getElementById("list_status").value;
+
+        fetch(`${BASE_URL}/list/status/${status}`)
+            .then(r => r.json())
+            .then(list => document.getElementById("listStatusResult").innerHTML = createTable(list));
+    }
+    
+    function searchDesc() {
+        const key = document.getElementById("search_desc").value;
+
+        fetch(`${BASE_URL}/search/description/${key}`)
+            .then(r => r.json())
+            .then(list => document.getElementById("descResult").innerHTML = createTable(list));
+    }
+	
+	 function searchPlate() {
+        const plate = document.getElementById("search_plate").value;
+
+        fetch(`${BASE_URL}/search/${plate}`,{ method: "GET" })
+            .then(r => r.json())
+            .then(list => document.getElementById("searchResult").innerHTML = createTable(list));
+    }
+	
+	// Update Status
+	function updateStatus() {
+	    const plate = document.getElementById("updPlate").value;
+	    const status = document.getElementById("updStatus").value;
+	
+	    fetch(`${BASE_URL}/status/${plate}/${status}`, { method: "PUT" })
+	        .then(res => res.text())
+	        .then(text => document.getElementById("updResult").innerText = text);
+	}
+	
+	// Add Vehicle
+	function addVehicle() {
+	    const data = {
+	        licensePlate: document.getElementById("licensePlate").value,
+	        description: document.getElementById("description").value,
+	        year: parseInt(document.getElementById("year").value),
+	        type: document.getElementById("type").value,
+	        status: document.getElementById("status").value,
+	        //price:parseInt(document.getElementById("price").value),
+	        weightLimit:document.getElementById("weightLimit").value
+	    };
+	
+	    fetch(`${BASE_URL}/add`, {
+	        method: "POST",
+	        headers: { "Content-Type": "application/json" },
+	        body: JSON.stringify(data)
+	    })
+	    .then(res => res.text())
+	    .then(text => document.getElementById("addResult").innerText = text)
+	    .then(() => {
+		        loadVehicles();
+		        alert("Vehicle added.");
+    	});
+	}
+	
+	function listAllVehicle() {
+       // const status = document.getElementById("list_status").value;
+
+        fetch(`${BASE_URL}/getAll`)
+            .then(r => r.json())
+            .then(list => document.getElementById("listAllResult").innerHTML = createTable(list));
+    }
+function loadVehiclesNew() {
+	//const status = document.getElementById("list_status").value;
+	
+	fetch(`${BASE_URL}/list/status/New`)
+	.then(r => r.json())
+	.then(list => document.getElementById("outputAll").innerHTML = createTable(list)); 
+}	
+function loadVehicles() {
+    fetch("/api/vehicle/list/status/new",{ method: "GET" })
+        .then(r => r.json())
+       .then(data => {
+            document.getElementById("output").innerText =
+                JSON.stringify(data, null, 2);
+        });
+}
+
+</script>
+	
+	
+
+</body>
+</html>
